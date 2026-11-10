@@ -43,7 +43,6 @@ create database if not exists club_db;
 -- switch into it, so everything below lands in the right place.
 use club_db;
 
-
 -- ==================================================================
 -- FROM PROJECT 9. member. member_id starts at 100.
 -- ==================================================================
@@ -180,17 +179,34 @@ SELECT * FROM payment_log;
 -- STEP 2. list_members
 -- =================================================================
 
--- your comment goes here
--- your statements go here
+-- create a procedure to list all members by last name
+create procedure list_members()
+begin
+    select member_id, first_name, last_name, total_paid
+    from member
+    order by last_name;
+end
 
+-- show all members
+call list_members();
 
 -- =================================================================
 -- STEP 3. member_history, with an IN parameter
 -- =================================================================
 
--- your comment goes here
--- your statements go here
+-- create a procedure to show a member's payment history
+create procedure member_history(in p_member_id INT)
+begin
+    select payment_id, amount, paid_on, method
+    from payment
+    where member_id = p_member_id;
+end
 
+-- show payment history for member 100
+call member_history(100);
+
+-- show payment history for member 103
+call member_history(103);
 
 -- =================================================================
 -- STEP 4. add_member
@@ -198,9 +214,14 @@ SELECT * FROM payment_log;
 -- Copy the skeleton from the handout and write the INSERT.
 -- =================================================================
 
--- your comment goes here
--- your statements go here
-
+-- adds a new member, who joins today
+CREATE PROCEDURE add_member(IN p_first VARCHAR(30),
+                            IN p_last VARCHAR(30))
+BEGIN
+ -- store the new member with today's date
+    INSERT INTO member (first_name, last_name, joined_on)
+    VALUES (p_first, p_last, CURDATE());
+END
 
 -- =================================================================
 -- STEP 5. make_payment
@@ -208,9 +229,15 @@ SELECT * FROM payment_log;
 -- Copy the skeleton and write the INSERT.
 -- =================================================================
 
--- your comment goes here
--- your statements go here
-
+-- create a procedure to make a payment
+CREATE PROCEDURE make_payment(IN p_member_id INT,
+                            IN p_amount DECIMAL(7,2),
+                            IN p_method VARCHAR(10))
+BEGIN
+    -- add a payment for a member
+    INSERT INTO payment (member_id, amount, method)
+    VALUES (p_member_id, p_amount, p_method);
+END
 
 -- =================================================================
 -- STEP 6. refund_payment
@@ -218,25 +245,56 @@ SELECT * FROM payment_log;
 -- Most of this one is yours. The handout walks you through it.
 -- =================================================================
 
--- your comment goes here
--- your statements go here
-
+-- create a procedure to refund a payment
+CREATE PROCEDURE refund_payment(IN p_payment_id INT)
+BEGIN
+    -- remove a payment using its id
+    DELETE FROM payment 
+    WHERE payment_id = p_payment_id;
+END
 
 -- =================================================================
 -- STEP 7. Change list_members to show the biggest payers first
 -- =================================================================
 
--- your comment goes here
--- your statements go here
+-- remove the old list_members procedure
+DROP PROCEDURE IF EXISTS list_members;
 
+-- create a procedure to list members by highest payment
+CREATE PROCEDURE list_members()
+BEGIN
+    SELECT member_id, first_name, last_name, total_paid
+    FROM member
+    ORDER BY total_paid DESC, last_name ASC;
+END
+
+-- show all members by highest payment
+call list_members();
 
 -- =================================================================
 -- STEP 8. Run the club for a day
 -- =================================================================
 
--- your comment goes here
--- your statements go here
+-- add a new member, "Imani Brooks"
+call add_member('Imani', 'Brooks');
 
+-- show all members after adding Imani
+call list_members();
+
+-- add a $50 card payment for Imani
+call make_payment(104, 50.00, 'card');
+
+-- show Imani's payment history
+call member_history(104);
+
+-- refund Noor's $45 payment
+call refund_payment(5000);
+
+-- show all members with updated totals
+call list_members();
+
+-- show all payment log records
+select * from payment_log;
 
 -- =================================================================
 -- STEP 9. Three problems, left open on purpose
@@ -244,23 +302,51 @@ SELECT * FROM payment_log;
 -- Under each call, a comment on what happened and what should have.
 -- =================================================================
 
--- your comment goes here
--- your statements go here
+-- try to make a payment for a member who does not exist
+call make_payment(999, 20.00, 'cash');
+-- the payment failed because member 999 doesn't exist
+-- it should show a clearer message explaining the problem
 
+-- try to make a negative payment for Desmond
+call make_payment(103, -10.00, 'cash');
+
+-- check the updated member totals
+call list_members();
+-- the payment was accepted and desmond's total is now -10.00
+-- it should reject negative amounts instead of accepting them
+
+-- try to refund a payment that does not exist
+call refund_payment(7777);
+-- nothing happened because payment 7777 doesn't exist
+-- it should show a message saying the payment was not found
+
+-- find Desmond's negative payment
+call member_history(103);
+
+-- remove Desmond's negative payment
+call refund_payment(5008);
+
+-- check Desmond's payment history
+call member_history(103);
+
+-- check the updated member totals
+call list_members();
+
+-- check the payment log
+select * from payment_log;
 
 -- =================================================================
 -- STEP 10. List every routine in club_db
 -- =================================================================
 
--- your comment goes here
--- your statements go here
-
+-- show all routines in club_db by name
+select routine_name, routine_type
+from information_schema.routines
+where routine_schema = 'club_db'
+order by routine_name;
 
 -- =================================================================
 -- STEP 11 and 12. Push to GitHub and submit the URL
 --
 -- Nothing to write here. Follow the handout.
 -- =================================================================
-
--- your comment goes here
--- your statements go here
